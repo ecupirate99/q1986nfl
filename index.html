@@ -1,55 +1,122 @@
-<script>
-  const form = document.getElementById('queryForm');
-  const tableBody = document.querySelector('#resultsTable tbody');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NFL 1986 Stats API</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🏈 NFL 1986 Offensive Player Stats</h1>
+    <p>Query the API for offensive player stats</p>
+  </header>
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const params = new URLSearchParams(new FormData(form)).toString();
+  <main>
+    <section class="query-box">
+      <form id="queryForm">
+        <label for="name">Player Name:</label>
+        <input type="text" id="name" name="name" placeholder="e.g. Marino">
 
-    try {
-      const res = await fetch(`/.netlify/functions/players?${params}`);
+        <label for="team">Team:</label>
+        <input type="text" id="team" name="team" placeholder="e.g. Dolphins">
 
-      if (!res.ok) {
-        // Show error on page
-        tableBody.innerHTML = `<tr><td colspan="10">Error: ${res.status} ${res.statusText}</td></tr>`;
-        console.error("Fetch error:", res.status, res.statusText);
-        return;
-      }
+        <label for="pos">Position:</label>
+        <input type="text" id="pos" name="pos" placeholder="QB, RB, WR, TE">
 
-      const data = await res.json();
+        <label for="minYds">Min Yards:</label>
+        <input type="number" id="minYds" name="minYds">
 
-      // Clear previous results
-      tableBody.innerHTML = "";
+        <label for="minTD">Min Touchdowns:</label>
+        <input type="number" id="minTD" name="minTD">
 
-      if (!Array.isArray(data) || data.length === 0) {
-        tableBody.innerHTML = "<tr><td colspan='10'>No results found</td></tr>";
-        console.warn("No results returned for query:", params);
-        return;
-      }
+        <button type="submit">Search Stats</button>
+      </form>
+    </section>
 
-      // Populate table
-      data.forEach(p => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${p.Player || ""}</td>
-          <td>${p.Team || ""}</td>
-          <td>${p.Pos || ""}</td>
-          <td>${p.G || ""}</td>
-          <td>${p.Cmp || ""}</td>
-          <td>${p.Att || ""}</td>
-          <td>${p.Yds || ""}</td>
-          <td>${p.TD || ""}</td>
-          <td>${p.Int || ""}</td>
-          <td>${p.Rate || ""}</td>
-        `;
-        tableBody.appendChild(row);
+    <section class="results">
+      <h2>Results</h2>
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Team</th>
+            <th>Pos</th>
+            <th>G</th>
+            <th>Cmp</th>
+            <th>Att</th>
+            <th>Yds</th>
+            <th>TD</th>
+            <th>Int</th>
+            <th>Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Results will be injected here -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    <p>Powered by Netlify Functions & JSON API</p>
+  </footer>
+
+  <!-- ✅ Script placed at bottom so DOM elements exist -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const form = document.getElementById('queryForm');
+      const tableBody = document.querySelector('#resultsTable tbody');
+
+      console.log("Script loaded, waiting for form submit...");
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const params = new URLSearchParams(new FormData(form)).toString();
+        console.log("Submitting query:", params);
+
+        try {
+          const res = await fetch(`/.netlify/functions/players?${params}`);
+          console.log("Response status:", res.status);
+
+          if (!res.ok) {
+            tableBody.innerHTML = `<tr><td colspan="10">Error: ${res.status} ${res.statusText}</td></tr>`;
+            console.error("Fetch error:", res.status, res.statusText);
+            return;
+          }
+
+          const data = await res.json();
+          console.log("Data returned:", data);
+
+          tableBody.innerHTML = "";
+
+          if (!Array.isArray(data) || data.length === 0) {
+            tableBody.innerHTML = "<tr><td colspan='10'>No results found</td></tr>";
+            console.warn("No results returned for query:", params);
+            return;
+          }
+
+          data.forEach(p => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${p.Player || ""}</td>
+              <td>${p.Team || ""}</td>
+              <td>${p.Pos || ""}</td>
+              <td>${p.G || ""}</td>
+              <td>${p.Cmp || ""}</td>
+              <td>${p.Att || ""}</td>
+              <td>${p.Yds || ""}</td>
+              <td>${p.TD || ""}</td>
+              <td>${p.Int || ""}</td>
+              <td>${p.Rate || ""}</td>
+            `;
+            tableBody.appendChild(row);
+          });
+        } catch (err) {
+          tableBody.innerHTML = `<tr><td colspan="10">Error: ${err.message}</td></tr>`;
+          console.error("Unexpected error:", err);
+        }
       });
-
-    } catch (err) {
-      // Show error on page
-      tableBody.innerHTML = `<tr><td colspan="10">Error: ${err.message}</td></tr>`;
-      // Log full error in browser console
-      console.error("Unexpected error:", err);
-    }
-  });
-</script>
+    });
+  </script>
+</body>
+</html>
