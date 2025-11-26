@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>NFL 1986 Stats</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- important for mobile scaling -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body { font-family: Arial, sans-serif; margin: 10px; }
     h1 { color: #003366; font-size: 1.5em; }
@@ -12,36 +12,37 @@
     input, button { width: 100%; padding: 8px; margin-top: 4px; font-size: 1em; }
     button { margin-top: 10px; }
     .layout { display: flex; gap: 20px; }
-    .filters { width: 200px; }
+    .filters { width: 220px; }
     table { border-collapse: collapse; width: 100%; margin-top: 20px; font-size: 0.9em; }
     th, td { border: 1px solid #ccc; padding: 6px; text-align: center; cursor: pointer; }
     th { background-color: #f2f2f2; }
     th.sort-asc::after { content: " ▲"; }
     th.sort-desc::after { content: " ▼"; }
-    /* Responsive adjustments */
     @media (max-width: 768px) {
       .layout { flex-direction: column; }
       .filters { width: 100%; }
       table { display: block; overflow-x: auto; white-space: nowrap; }
       th, td { padding: 10px; }
     }
+    .hint { color: #666; font-size: 0.9em; margin-top: 4px; }
   </style>
 </head>
 <body>
   <h1>🏈 NFL 1986 Offensive Player Stats</h1>
 
-  <!-- Ask a question stays at the top -->
+  <!-- Ask a question -->
   <form id="queryForm">
     <label>Ask a question:</label>
-    <input type="text" id="question" name="question" placeholder="e.g. Top 5 by yards">
-    <br><br>
+    <input type="text" id="question" name="question" placeholder="e.g. Top 5 RB by yardage">
+    <div class="hint">Examples: “Top 5 RB by yardage”, “Top 10 WR by touchdowns”, “Team Dolphins top 3 by yards”, “Rank QBs by rating”.</div>
+    <br>
 
     <div class="layout">
       <!-- Filters stacked vertically -->
       <div class="filters">
         <label>Player Name:<input type="text" name="name"></label>
         <label>Team:<input type="text" name="team"></label>
-        <label>Position:<input type="text" name="pos"></label>
+        <label>Position:<input type="text" name="pos" placeholder="QB, RB, WR, TE"></label>
         <label>Min Yards:<input type="number" name="minYds"></label>
         <label>Min TD:<input type="number" name="minTD"></label>
         <button type="submit">Search</button>
@@ -87,28 +88,92 @@
         const params = Object.fromEntries(new FormData(form).entries());
         let results = players;
 
-        // Simple natural language parsing
+        // Natural language parsing (combined queries)
         if (params.question) {
           const q = params.question.toLowerCase();
+
+          // 1) Extract intent parts
+          const topMatch = q.match(/top\s*(\d+)/); // e.g., top 5
+          const topN = topMatch ? parseInt(topMatch[1]) : null;
+
+          // position: qb/rb/wr/te
+          const posMatch = q.match(/\b(qb|rb|wr|te)\b/);
+          const pos = posMatch ? posMatch[1] : null;
+
+          // team: "team dolphins" or just word after "team"
+          let team = null;
+          const teamWord = q.match(/team\s+([a-z]+)/);
+          if (teamWord) team = teamWord[1];
+          // common direct mentions without "team"
+          const teams = ["dolphins","bears","giants","jets","patriots","broncos","raiders","bills","chiefs","steelers","browns","colts","oilers","seahawks","chargers","cowboys","eagles","redskins","cardinals","saints","falcons","rams","49ers","vikings","buccaneers","packers","lions","bengals"];
+          if (!team) {
+            const directTeam = teams.find(t => q.includes(t));
+            if (directTeam) team = directTeam;
+          }
+
+          // metric: yards/yardage/yds, touchdowns/td, interceptions/int, rating
+          let metric = null;
+          if (q.match(/\b(yards|yardage|yds)\b/)) metric = "Yds";
+          else if (q.match(/\b(td|touchdowns?)\b/)) metric = "TD";
+          else if (q.match(/\b(int|interceptions?)\b/)) metric = "Int";
+          else if (q.includes("rating")) metric = "Rate";
+
+          // ranking intent: "rank ... by ..."
+          const wantsRank = q.includes("rank");
+
+          // threshold filters: "at least 20 td", "more than 4000 yards"
+          const thresholdYds = q.match(/(at\s+least|>=|more\s+than|over)\s*(\d+)\s*(yards|yardage|yds)/);
+          const thresholdTD = q.match(/(at\s+least|>=|more\s+than|over)\s*(\d+)\s*(td|touchdowns?)/);
+
+          // 2) Apply extracted filters
+          if (pos) {
+            results = results.filter(p => p.Pos && p.Pos.toLowerCase() === pos.toLowerCase());
+          }
+          if (team) {
+            results = results.filter(p => p.Team && p.Team.toLowerCase().includes(team.toLowerCase()));
+          }
+          if (thresholdYds) {
+            const val = parseInt(thresholdYds[2]);
+            results = results.filter(p => parseFloat(p.Yds || 0) >= val);
+          }
+          if (thresholdTD) {
+            const val = parseInt(thresholdTD[2]);
+            results = results.filter(p => parseInt(p.TD || 0) >= val);
+          }
+
+          // quick intents like "most yards" / "most touchdowns"
           if (q.includes("most yards")) {
             results = results.sort((a, b) => parseFloat(b.Yds || 0) - parseFloat(a.Yds || 0)).slice(0, 1);
-          }
-          if (q.includes("most td") || q.includes("most touchdowns")) {
+          } else if (q.includes("most td") || q.includes("most touchdowns")) {
             results = results.sort((a, b) => parseInt(b.TD || 0) - parseInt(a.TD || 0)).slice(0, 1);
+          } else {
+            // 3) Sorting / ranking
+            if (wantsRank && metric) {
+              results = results.sort((a, b) => num(b[metric]) - num(a[metric]));
+            } else if (metric) {
+              // If metric specified without "rank", treat as "top N by metric" or sort by metric desc
+              results = results.sort((a, b) => num(b[metric]) - num(a[metric]));
+              if (topN) results = results.slice(0, topN);
+            } else if (topN) {
+              // If "top N" without metric, default to yards
+              results = results.sort((a, b) => num(b.Yds) - num(a.Yds)).slice(0, topN);
+            }
           }
-          const yardsMatch = q.match(/(\d+)\s*(yards|yds)/);
-          if (yardsMatch) {
-            const minYds = parseInt(yardsMatch[1]);
-            results = results.filter(p => parseFloat(p.Yds || 0) >= minYds);
+
+          // Numeric capture without qualifiers: "4000 yards", "20 td"
+          const bareYds = q.match(/(^|\s)(\d{3,5})\s*(yards|yardage|yds)\b/);
+          if (bareYds && !thresholdYds) {
+            const val = parseInt(bareYds[2]);
+            results = results.filter(p => parseFloat(p.Yds || 0) >= val);
           }
-          const tdMatch = q.match(/(\d+)\s*(td|touchdowns?)/);
-          if (tdMatch) {
-            const minTD = parseInt(tdMatch[1]);
-            results = results.filter(p => parseInt(p.TD || 0) >= minTD);
+          const bareTD = q.match(/(^|\s)(\d{1,3})\s*(td|touchdowns?)\b/);
+          if (bareTD && !thresholdTD) {
+            const val = parseInt(bareTD[2]);
+            results = results.filter(p => parseInt(p.TD || 0) >= val);
           }
         }
 
-        // Apply filters
+        // Manual filters
         if (params.name) results = results.filter(p => p.Player && p.Player.toLowerCase().includes(params.name.toLowerCase()));
         if (params.team) results = results.filter(p => p.Team && p.Team.toLowerCase().includes(params.team.toLowerCase()));
         if (params.pos) results = results.filter(p => p.Pos && p.Pos.toLowerCase() === params.pos.toLowerCase());
@@ -119,6 +184,7 @@
         renderResults(results);
       });
 
+      // Clear button
       clearBtn.addEventListener('click', () => {
         form.reset();
         tableBody.innerHTML = "";
@@ -127,6 +193,7 @@
         sortState = {};
       });
 
+      // Click-to-sort headers
       headers.forEach(header => {
         header.addEventListener('click', () => {
           if (!lastResults.length) return;
@@ -140,14 +207,14 @@
           header.classList.add(direction === "asc" ? "sort-asc" : "sort-desc");
 
           lastResults.sort((a,b) => {
-            const valA = a[key] || 0;
-            const valB = b[key] || 0;
+            const valA = safeNum(a[key], isNumeric);
+            const valB = safeNum(b[key], isNumeric);
             if (isNumeric) {
               return direction === "asc" ? valA - valB : valB - valA;
             } else {
               return direction === "asc"
-                ? String(valA).localeCompare(String(valB))
-                : String(valB).localeCompare(String(valA));
+                ? String(a[key] || "").localeCompare(String(b[key] || ""))
+                : String(b[key] || "").localeCompare(String(a[key] || ""));
             }
           });
 
@@ -178,6 +245,10 @@
           tableBody.appendChild(row);
         });
       }
+
+      // helpers
+      function num(v) { return parseFloat(v || 0); }
+      function safeNum(v, isNumeric) { return isNumeric ? parseFloat(v || 0) : 0; }
     });
   </script>
 </body>
