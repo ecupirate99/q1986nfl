@@ -3,67 +3,93 @@
 <head>
   <meta charset="UTF-8">
   <title>NFL 1986 Stats</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- important for mobile scaling -->
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h1 { color: #003366; }
+    body { font-family: Arial, sans-serif; margin: 10px; }
+    h1 { color: #003366; font-size: 1.5em; }
     form { margin-bottom: 20px; }
-    label { margin-right: 10px; }
-    button { margin-left: 10px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    label { display: block; margin-bottom: 10px; }
+    input, button { width: 100%; padding: 8px; margin-top: 4px; font-size: 1em; }
+    button { margin-top: 10px; }
+    .layout { display: flex; gap: 20px; }
+    .filters { width: 200px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; font-size: 0.9em; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; cursor: pointer; }
     th { background-color: #f2f2f2; }
+    th.sort-asc::after { content: " ▲"; }
+    th.sort-desc::after { content: " ▼"; }
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .layout { flex-direction: column; }
+      .filters { width: 100%; }
+      table { display: block; overflow-x: auto; white-space: nowrap; }
+      th, td { padding: 10px; }
+    }
   </style>
 </head>
 <body>
   <h1>🏈 NFL 1986 Offensive Player Stats</h1>
 
-  <!-- Free-form question box -->
+  <!-- Ask a question stays at the top -->
   <form id="queryForm">
     <label>Ask a question:</label>
     <input type="text" id="question" name="question" placeholder="e.g. Top 5 by yards">
     <br><br>
 
-    <!-- Optional filters -->
-    <label>Player Name: <input type="text" name="name"></label>
-    <label>Team: <input type="text" name="team"></label>
-    <label>Position: <input type="text" name="pos"></label>
-    <label>Min Yards: <input type="number" name="minYds"></label>
-    <label>Min TD: <input type="number" name="minTD"></label>
-    <button type="submit">Search</button>
-    <button type="button" id="clearBtn">Clear</button>
-  </form>
+    <div class="layout">
+      <!-- Filters stacked vertically -->
+      <div class="filters">
+        <label>Player Name:<input type="text" name="name"></label>
+        <label>Team:<input type="text" name="team"></label>
+        <label>Position:<input type="text" name="pos"></label>
+        <label>Min Yards:<input type="number" name="minYds"></label>
+        <label>Min TD:<input type="number" name="minTD"></label>
+        <button type="submit">Search</button>
+        <button type="button" id="clearBtn">Clear</button>
+      </div>
 
-  <table id="resultsTable">
-    <thead>
-      <tr>
-        <th>Player</th><th>Team</th><th>Pos</th><th>G</th>
-        <th>Cmp</th><th>Att</th><th>Yds</th><th>TD</th>
-        <th>Int</th><th>Rate</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+      <!-- Results table -->
+      <div style="flex:1;">
+        <table id="resultsTable">
+          <thead>
+            <tr>
+              <th data-key="Player">Player</th>
+              <th data-key="Team">Team</th>
+              <th data-key="Pos">Pos</th>
+              <th data-key="G">G</th>
+              <th data-key="Cmp">Cmp</th>
+              <th data-key="Att">Att</th>
+              <th data-key="Yds">Yds</th>
+              <th data-key="TD">TD</th>
+              <th data-key="Int">Int</th>
+              <th data-key="Rate">Rate</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </form>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const form = document.getElementById('queryForm');
       const tableBody = document.querySelector('#resultsTable tbody');
       const clearBtn = document.getElementById('clearBtn');
+      const headers = document.querySelectorAll('#resultsTable th');
+      let lastResults = [];
+      let sortState = {};
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-
-        // Load JSON directly
         const res = await fetch("players.json");
         const players = await res.json();
-
         const params = Object.fromEntries(new FormData(form).entries());
         let results = players;
 
-        // --- Natural language question parsing ---
+        // Simple natural language parsing
         if (params.question) {
           const q = params.question.toLowerCase();
-
           if (q.includes("most yards")) {
             results = results.sort((a, b) => parseFloat(b.Yds || 0) - parseFloat(a.Yds || 0)).slice(0, 1);
           }
@@ -80,58 +106,61 @@
             const minTD = parseInt(tdMatch[1]);
             results = results.filter(p => parseInt(p.TD || 0) >= minTD);
           }
-          const teamMatch = q.match(/team\s+(\w+)/);
-          if (teamMatch) {
-            const team = teamMatch[1];
-            results = results.filter(p => p.Team && p.Team.toLowerCase().includes(team.toLowerCase()));
-          }
-          if (q.includes("dolphins")) {
-            results = results.filter(p => p.Team && p.Team.toLowerCase().includes("dolphins"));
-          }
-          const posMatch = q.match(/(qb|rb|wr|te)/);
-          if (posMatch) {
-            const pos = posMatch[1];
-            results = results.filter(p => p.Pos && p.Pos.toLowerCase() === pos.toLowerCase());
-          }
-          const topYdsMatch = q.match(/top\s*(\d+)\s*(by)?\s*yards/);
-          if (topYdsMatch) {
-            const n = parseInt(topYdsMatch[1]);
-            results = results.sort((a, b) => parseFloat(b.Yds || 0) - parseFloat(a.Yds || 0)).slice(0, n);
-          }
-          const topTDMatch = q.match(/top\s*(\d+)\s*(by)?\s*(td|touchdowns?)/);
-          if (topTDMatch) {
-            const n = parseInt(topTDMatch[1]);
-            results = results.sort((a, b) => parseInt(b.TD || 0) - parseInt(a.TD || 0)).slice(0, n);
-          }
-          if (q.includes("rank") && q.includes("rating")) {
-            results = results.sort((a, b) => parseFloat(b.Rate || 0) - parseFloat(a.Rate || 0));
-          }
         }
 
-        // --- Apply filters normally ---
-        if (params.name) {
-          results = results.filter(p => p.Player && p.Player.toLowerCase().includes(params.name.toLowerCase()));
-        }
-        if (params.team) {
-          results = results.filter(p => p.Team && p.Team.toLowerCase().includes(params.team.toLowerCase()));
-        }
-        if (params.pos) {
-          results = results.filter(p => p.Pos && p.Pos.toLowerCase() === params.pos.toLowerCase());
-        }
-        if (params.minYds) {
-          results = results.filter(p => parseFloat(p.Yds || 0) >= parseFloat(params.minYds));
-        }
-        if (params.minTD) {
-          results = results.filter(p => parseInt(p.TD || 0) >= parseInt(params.minTD));
-        }
+        // Apply filters
+        if (params.name) results = results.filter(p => p.Player && p.Player.toLowerCase().includes(params.name.toLowerCase()));
+        if (params.team) results = results.filter(p => p.Team && p.Team.toLowerCase().includes(params.team.toLowerCase()));
+        if (params.pos) results = results.filter(p => p.Pos && p.Pos.toLowerCase() === params.pos.toLowerCase());
+        if (params.minYds) results = results.filter(p => parseFloat(p.Yds || 0) >= parseFloat(params.minYds));
+        if (params.minTD) results = results.filter(p => parseInt(p.TD || 0) >= parseInt(params.minTD));
 
-        // --- Display results ---
+        lastResults = results;
+        renderResults(results);
+      });
+
+      clearBtn.addEventListener('click', () => {
+        form.reset();
         tableBody.innerHTML = "";
-        if (results.length === 0) {
+        lastResults = [];
+        headers.forEach(h => h.classList.remove("sort-asc", "sort-desc"));
+        sortState = {};
+      });
+
+      headers.forEach(header => {
+        header.addEventListener('click', () => {
+          if (!lastResults.length) return;
+          const key = header.dataset.key;
+          const isNumeric = ["G","Cmp","Att","Yds","TD","Int","Rate"].includes(key);
+          const direction = sortState[key] === "asc" ? "desc" : "asc";
+          sortState = {};
+          sortState[key] = direction;
+
+          headers.forEach(h => h.classList.remove("sort-asc","sort-desc"));
+          header.classList.add(direction === "asc" ? "sort-asc" : "sort-desc");
+
+          lastResults.sort((a,b) => {
+            const valA = a[key] || 0;
+            const valB = b[key] || 0;
+            if (isNumeric) {
+              return direction === "asc" ? valA - valB : valB - valA;
+            } else {
+              return direction === "asc"
+                ? String(valA).localeCompare(String(valB))
+                : String(valB).localeCompare(String(valA));
+            }
+          });
+
+          renderResults(lastResults);
+        });
+      });
+
+      function renderResults(results) {
+        tableBody.innerHTML = "";
+        if (!results.length) {
           tableBody.innerHTML = "<tr><td colspan='10'>No results found</td></tr>";
           return;
         }
-
         results.forEach(p => {
           const row = document.createElement('tr');
           row.innerHTML = `
@@ -148,13 +177,7 @@
           `;
           tableBody.appendChild(row);
         });
-      });
-
-      // --- Clear button functionality ---
-      clearBtn.addEventListener('click', () => {
-        form.reset(); // clears all inputs
-        tableBody.innerHTML = ""; // clears results
-      });
+      }
     });
   </script>
 </body>
