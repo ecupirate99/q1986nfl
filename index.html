@@ -30,10 +30,6 @@
   <h1>🏈 NFL 1986 Offensive Player Stats</h1>
 
   <form id="queryForm">
-    <label>Ask a question:</label>
-    <input type="text" id="question" name="question" placeholder="e.g. Top 5 RB by yardage">
-    <br><br>
-
     <div class="layout">
       <div class="filters">
         <label>Player Name:<input type="text" name="name"></label>
@@ -134,7 +130,14 @@
           results = results.filter(p => p.Team && p.Team.toLowerCase().includes(params.team.toLowerCase()));
         }
         if (params.pos) {
-          results = results.filter(p => p.Pos && p.Pos.toLowerCase() === params.pos.toLowerCase());
+          results = results.filter(p => {
+            const pos = p.Pos ? p.Pos.toLowerCase() : "";
+            if (params.pos.toLowerCase() === "qb") return pos.includes("qb") || pos.includes("quarterback");
+            if (params.pos.toLowerCase() === "rb") return pos.includes("rb") || pos.includes("running");
+            if (params.pos.toLowerCase() === "wr") return pos.includes("wr") || pos.includes("wide");
+            if (params.pos.toLowerCase() === "te") return pos.includes("te") || pos.includes("tight");
+            return false;
+          });
         }
         if (params.minYds) {
           results = results.filter(p => parseFloat(p.Yds || 0) >= parseFloat(params.minYds));
@@ -172,23 +175,4 @@
 
           lastResults.sort((a,b) => {
             const valA = isNumeric ? parseFloat(a[key] || 0) : String(a[key] || "");
-            const valB = isNumeric ? parseFloat(b[key] || 0) : String(b[key] || "");
-            if (isNumeric) {
-              return direction === "asc" ? valA - valB : valB - valA;
-            } else {
-              return direction === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
-            }
-          });
-
-          renderResults(lastResults);
-        });
-      });
-
-      function renderResults(results) {
-        tableBody.innerHTML = "";
-        if (!results.length) {
-          tableBody.innerHTML = "<tr><td colspan='10'>No results found</td></tr>";
-          return;
-        }
-        results.forEach(p => {
-         
+            const valB = isNumeric ? parseFloat(b[key] || 0) : String(b[key]
