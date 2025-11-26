@@ -1,7 +1,7 @@
 // netlify/functions/players.js
 
-const players = require("../data/players.json"); 
-// ^ Adjust path if your JSON is in a different folder
+const players = require("./players.json"); 
+// ✅ players.json must be in the same folder as players.js
 
 exports.handler = async (event, context) => {
   const { name, team, pos, minPassYds, minRushYds, minRecYds } = event.queryStringParameters;
@@ -10,17 +10,17 @@ exports.handler = async (event, context) => {
 
   // Filter by player name
   if (name) {
-    results = results.filter(p => p.Player.toLowerCase().includes(name.toLowerCase()));
+    results = results.filter(p => p.Player && p.Player.toLowerCase().includes(name.toLowerCase()));
   }
 
   // Filter by team
   if (team) {
-    results = results.filter(p => p.Team.toLowerCase() === team.toLowerCase());
+    results = results.filter(p => p.Team && p.Team.toLowerCase() === team.toLowerCase());
   }
 
   // Filter by position
   if (pos) {
-    results = results.filter(p => p.Pos.toLowerCase() === pos.toLowerCase());
+    results = results.filter(p => p.Pos && p.Pos.toLowerCase() === pos.toLowerCase());
   }
 
   // Filter by stat thresholds
