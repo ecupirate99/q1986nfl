@@ -24,24 +24,20 @@
       table { display: block; overflow-x: auto; white-space: nowrap; }
       th, td { padding: 10px; }
     }
-    .hint { color: #666; font-size: 0.9em; margin-top: 4px; }
   </style>
 </head>
 <body>
   <h1>🏈 NFL 1986 Offensive Player Stats</h1>
 
-  <!-- Ask a question -->
   <form id="queryForm">
     <label>Ask a question:</label>
     <input type="text" id="question" name="question" placeholder="e.g. Top 5 RB by yardage">
-    <div class="hint">Examples: “Top 5 RB by yardage”, “Top 10 WR by touchdowns”, “Team Dolphins top 3 by yards”, “Rank QBs by rating”.</div>
-    <br>
+    <br><br>
 
     <div class="layout">
-      <!-- Filters stacked vertically -->
       <div class="filters">
         <label>Player Name:<input type="text" name="name"></label>
-        
+
         <label>Team:
           <select name="team">
             <option value="">-- Select Team --</option>
@@ -92,7 +88,6 @@
         <button type="button" id="clearBtn">Clear</button>
       </div>
 
-      <!-- Results table -->
       <div style="flex:1;">
         <table id="resultsTable">
           <thead>
@@ -181,4 +176,19 @@
             if (isNumeric) {
               return direction === "asc" ? valA - valB : valB - valA;
             } else {
-              return direction === "asc" ? val
+              return direction === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            }
+          });
+
+          renderResults(lastResults);
+        });
+      });
+
+      function renderResults(results) {
+        tableBody.innerHTML = "";
+        if (!results.length) {
+          tableBody.innerHTML = "<tr><td colspan='10'>No results found</td></tr>";
+          return;
+        }
+        results.forEach(p => {
+         
