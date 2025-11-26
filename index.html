@@ -38,7 +38,26 @@
 
     <section class="results">
       <h2>Results</h2>
-      <pre id="output">Results will appear here...</pre>
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Team</th>
+            <th>Pos</th>
+            <th>G</th>
+            <th>PassYds</th>
+            <th>PassTD</th>
+            <th>RushYds</th>
+            <th>RushTD</th>
+            <th>Rec</th>
+            <th>RecYds</th>
+            <th>RecTD</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Results will be injected here -->
+        </tbody>
+      </table>
     </section>
   </main>
 
@@ -48,14 +67,40 @@
 
   <script>
     const form = document.getElementById('queryForm');
-    const output = document.getElementById('output');
+    const tableBody = document.querySelector('#resultsTable tbody');
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const params = new URLSearchParams(new FormData(form)).toString();
       const res = await fetch(`/.netlify/functions/players?${params}`);
       const data = await res.json();
-      output.textContent = JSON.stringify(data, null, 2);
+
+      // Clear previous results
+      tableBody.innerHTML = "";
+
+      if (data.length === 0) {
+        tableBody.innerHTML = "<tr><td colspan='11'>No results found</td></tr>";
+        return;
+      }
+
+      // Populate table
+      data.forEach(player => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${player.Player || ""}</td>
+          <td>${player.Team || ""}</td>
+          <td>${player.Pos || ""}</td>
+          <td>${player.G || ""}</td>
+          <td>${player.PassYds || ""}</td>
+          <td>${player.PassTD || ""}</td>
+          <td>${player.RushYds || ""}</td>
+          <td>${player.RushTD || ""}</td>
+          <td>${player.Rec || ""}</td>
+          <td>${player.RecYds || ""}</td>
+          <td>${player.RecTD || ""}</td>
+        `;
+        tableBody.appendChild(row);
+      });
     });
   </script>
 </body>
