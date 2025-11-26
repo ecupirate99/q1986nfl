@@ -4,47 +4,37 @@ const path = require("path");
 
 exports.handler = async (event) => {
   try {
-    const filePath = path.join(__dirname, "../../data/players.json");
+    // Load JSON file from the same folder
+    const filePath = path.join(__dirname, "players.json");
     const raw = fs.readFileSync(filePath, "utf8");
-    let players = JSON.parse(raw);
-
-    // Clean up junk keys
-    players = players.map(p => {
-      const cleaned = {};
-      for (const key in p) {
-        if (key && !key.startsWith("__")) {
-          cleaned[key] = p[key];
-        }
-      }
-      return cleaned;
-    });
+    const players = JSON.parse(raw);
 
     const { name, team, pos, minYds, minTD } = event.queryStringParameters || {};
     let results = players;
 
     if (name) {
-      results = results.filter(p =>
-        p.Player && p.Player.toLowerCase().includes(name.toLowerCase())
+      results = results.filter(
+        p => p.Player && p.Player.toLowerCase().includes(name.toLowerCase())
       );
     }
     if (team) {
-      results = results.filter(p =>
-        p.Team && p.Team.toLowerCase().includes(team.toLowerCase())
+      results = results.filter(
+        p => p.Team && p.Team.toLowerCase().includes(team.toLowerCase())
       );
     }
     if (pos) {
-      results = results.filter(p =>
-        p.Pos && p.Pos.toLowerCase() === pos.toLowerCase()
+      results = results.filter(
+        p => p.Pos && p.Pos.toLowerCase() === pos.toLowerCase()
       );
     }
     if (minYds) {
-      results = results.filter(p =>
-        parseFloat(p.Yds || 0) >= parseFloat(minYds)
+      results = results.filter(
+        p => parseFloat(p.Yds || 0) >= parseFloat(minYds)
       );
     }
     if (minTD) {
-      results = results.filter(p =>
-        parseInt(p.TD || 0) >= parseInt(minTD)
+      results = results.filter(
+        p => parseInt(p.TD || 0) >= parseInt(minTD)
       );
     }
 
@@ -56,7 +46,7 @@ exports.handler = async (event) => {
     console.error("Function error:", err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message })
+      body: JSON.stringify({ error: "Failed to load players.json", details: err.message })
     };
   }
 };
