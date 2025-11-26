@@ -35,46 +35,14 @@
         <label>Player Name:<input type="text" name="name"></label>
 
         <label>Team:
-          <select name="team">
+          <select name="team" id="teamSelect">
             <option value="">-- Select Team --</option>
-            <option value="49ers">49ers</option>
-            <option value="Bears">Bears</option>
-            <option value="Bengals">Bengals</option>
-            <option value="Bills">Bills</option>
-            <option value="Broncos">Broncos</option>
-            <option value="Browns">Browns</option>
-            <option value="Buccaneers">Buccaneers</option>
-            <option value="Cardinals">Cardinals</option>
-            <option value="Chargers">Chargers</option>
-            <option value="Chiefs">Chiefs</option>
-            <option value="Colts">Colts</option>
-            <option value="Cowboys">Cowboys</option>
-            <option value="Dolphins">Dolphins</option>
-            <option value="Eagles">Eagles</option>
-            <option value="Falcons">Falcons</option>
-            <option value="Giants">Giants</option>
-            <option value="Jets">Jets</option>
-            <option value="Lions">Lions</option>
-            <option value="Oilers">Oilers</option>
-            <option value="Packers">Packers</option>
-            <option value="Patriots">Patriots</option>
-            <option value="Raiders">Raiders</option>
-            <option value="Rams">Rams</option>
-            <option value="Redskins">Redskins</option>
-            <option value="Saints">Saints</option>
-            <option value="Seahawks">Seahawks</option>
-            <option value="Steelers">Steelers</option>
-            <option value="Vikings">Vikings</option>
           </select>
         </label>
 
         <label>Position:
-          <select name="pos">
+          <select name="pos" id="posSelect">
             <option value="">-- Select Position --</option>
-            <option value="QB">QB</option>
-            <option value="RB">RB</option>
-            <option value="TE">TE</option>
-            <option value="WR">WR</option>
           </select>
         </label>
 
@@ -107,18 +75,39 @@
   </form>
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       const form = document.getElementById('queryForm');
       const tableBody = document.querySelector('#resultsTable tbody');
       const clearBtn = document.getElementById('clearBtn');
       const headers = document.querySelectorAll('#resultsTable th');
+      const teamSelect = document.getElementById('teamSelect');
+      const posSelect = document.getElementById('posSelect');
       let lastResults = [];
       let sortState = {};
 
-      form.addEventListener('submit', async (e) => {
+      // Load JSON once at startup
+      const res = await fetch("players.json");
+      const players = await res.json();
+
+      // Auto-populate dropdowns
+      const teams = [...new Set(players.map(p => p.Team).filter(Boolean))].sort();
+      teams.forEach(team => {
+        const opt = document.createElement("option");
+        opt.value = team;
+        opt.textContent = team;
+        teamSelect.appendChild(opt);
+      });
+
+      const positions = [...new Set(players.map(p => p.Pos).filter(Boolean))].sort();
+      positions.forEach(pos => {
+        const opt = document.createElement("option");
+        opt.value = pos;
+        opt.textContent = pos;
+        posSelect.appendChild(opt);
+      });
+
+      form.addEventListener('submit', (e) => {
         e.preventDefault();
-        const res = await fetch("players.json");
-        const players = await res.json();
         const params = Object.fromEntries(new FormData(form).entries());
         let results = players;
 
@@ -127,17 +116,10 @@
           results = results.filter(p => p.Player && p.Player.toLowerCase().includes(params.name.toLowerCase()));
         }
         if (params.team) {
-          results = results.filter(p => p.Team && p.Team.toLowerCase().includes(params.team.toLowerCase()));
+          results = results.filter(p => p.Team && p.Team.toLowerCase() === params.team.toLowerCase());
         }
         if (params.pos) {
-          results = results.filter(p => {
-            const pos = p.Pos ? p.Pos.toLowerCase() : "";
-            if (params.pos.toLowerCase() === "qb") return pos.includes("qb") || pos.includes("quarterback");
-            if (params.pos.toLowerCase() === "rb") return pos.includes("rb") || pos.includes("running");
-            if (params.pos.toLowerCase() === "wr") return pos.includes("wr") || pos.includes("wide");
-            if (params.pos.toLowerCase() === "te") return pos.includes("te") || pos.includes("tight");
-            return false;
-          });
+          results = results.filter(p => p.Pos && p.Pos.toLowerCase() === params.pos.toLowerCase());
         }
         if (params.minYds) {
           results = results.filter(p => parseFloat(p.Yds || 0) >= parseFloat(params.minYds));
@@ -157,7 +139,7 @@
         form.reset();
         tableBody.innerHTML = "";
         lastResults = [];
-        headers.forEach(h => h.classList.remove("sort-asc", "sort-desc"));
+        headers.forEach(h => h.classList.remove("sort-asc","sort-desc"));
         sortState = {};
       });
 
@@ -175,4 +157,42 @@
 
           lastResults.sort((a,b) => {
             const valA = isNumeric ? parseFloat(a[key] || 0) : String(a[key] || "");
-            const valB = isNumeric ? parseFloat(b[key] || 0) : String(b[key]
+            const valB = isNumeric ? parseFloat(b[key] || 0) : String(b[key] || "");
+            if (isNumeric) {
+              return direction === "asc" ? valA - valB : valB - valA;
+            } else {
+              return direction === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            }
+          });
+
+          renderResults(lastResults);
+        });
+      });
+
+      function renderResults(results) {
+        tableBody.innerHTML = "";
+        if (!results.length) {
+          tableBody.innerHTML = "<tr><td colspan='10'>No results found</td></tr>";
+          return;
+        }
+        results.forEach(p => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${p.Player || ""}</td>
+            <td>${p.Team || ""}</td>
+            <td>${p.Pos || ""}</td>
+            <td>${p.G || ""}</td>
+            <td>${p.Cmp || ""}</td>
+            <td>${p.Att || ""}</td>
+            <td>${p.Yds || ""}</td>
+            <td>${p.TD || ""}</td>
+            <td>${p.Int || ""}</td>
+            <td>${p.Rate || ""}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
