@@ -1,53 +1,62 @@
 // netlify/functions/players.js
-
 const fs = require("fs");
 const path = require("path");
 
-exports.handler = async (event, context) => {
-  const players = JSON.parse(
-    fs.readFileSync(path.join(__dirname, "../../data/players.json"), "utf8")
-  );
+exports.handler = async (event) => {
+  try {
+    const filePath = path.join(__dirname, "../../data/players.json");
+    const raw = fs.readFileSync(filePath, "utf8");
+    let players = JSON.parse(raw);
 
-  const { name, team, pos, minYds, minTD } = event.queryStringParameters || {};
-  let results = players;
+    // Clean up junk keys
+    players = players.map(p => {
+      const cleaned = {};
+      for (const key in p) {
+        if (key && !key.startsWith("__")) {
+          cleaned[key] = p[key];
+        }
+      }
+      return cleaned;
+    });
 
-  // Filter by player name
-  if (name) {
-    results = results.filter(
-      p => p.Player && p.Player.toLowerCase().includes(name.toLowerCase())
-    );
+    const { name, team, pos, minYds, minTD } = event.queryStringParameters || {};
+    let results = players;
+
+    if (name) {
+      results = results.filter(p =>
+        p.Player && p.Player.toLowerCase().includes(name.toLowerCase())
+      );
+    }
+    if (team) {
+      results = results.filter(p =>
+        p.Team && p.Team.toLowerCase().includes(team.toLowerCase())
+      );
+    }
+    if (pos) {
+      results = results.filter(p =>
+        p.Pos && p.Pos.toLowerCase() === pos.toLowerCase()
+      );
+    }
+    if (minYds) {
+      results = results.filter(p =>
+        parseFloat(p.Yds || 0) >= parseFloat(minYds)
+      );
+    }
+    if (minTD) {
+      results = results.filter(p =>
+        parseInt(p.TD || 0) >= parseInt(minTD)
+      );
+    }
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify(results, null, 2)
+    };
+  } catch (err) {
+    console.error("Function error:", err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message })
+    };
   }
-
-  // Filter by team
-  if (team) {
-    results = results.filter(
-      p => p.Team && p.Team.toLowerCase().includes(team.toLowerCase())
-    );
-  }
-
-  // Filter by position
-  if (pos) {
-    results = results.filter(
-      p => p.Pos && p.Pos.toLowerCase() === pos.toLowerCase()
-    );
-  }
-
-  // Filter by yards (use "Yds" column)
-  if (minYds) {
-    results = results.filter(
-      p => parseFloat(p.Yds || 0) >= parseFloat(minYds)
-    );
-  }
-
-  // Filter by touchdowns (use "TD" column)
-  if (minTD) {
-    results = results.filter(
-      p => parseInt(p.TD || 0) >= parseInt(minTD)
-    );
-  }
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify(results, null, 2)
-  };
 };
