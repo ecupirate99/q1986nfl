@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NFL 1986 Stats API</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🏈 NFL 1986 Player Stats</h1>
+    <p>Query the API for offensive player stats</p>
+  </header>
+
+  <main>
+    <section class="query-box">
+      <form id="queryForm">
+        <label for="name">Player Name:</label>
+        <input type="text" id="name" name="name" placeholder="e.g. Marino">
+
+        <label for="team">Team:</label>
+        <input type="text" id="team" name="team" placeholder="e.g. MIA">
+
+        <label for="pos">Position:</label>
+        <input type="text" id="pos" name="pos" placeholder="QB, RB, WR, TE">
+
+        <label for="minPassYds">Min Passing Yards:</label>
+        <input type="number" id="minPassYds" name="minPassYds">
+
+        <label for="minRushYds">Min Rushing Yards:</label>
+        <input type="number" id="minRushYds" name="minRushYds">
+
+        <label for="minRecYds">Min Receiving Yards:</label>
+        <input type="number" id="minRecYds" name="minRecYds">
+
+        <button type="submit">Search Stats</button>
+      </form>
+    </section>
+
+    <section class="results">
+      <h2>Results</h2>
+      <pre id="output">Results will appear here...</pre>
+    </section>
+  </main>
+
+  <footer>
+    <p>Powered by Netlify Functions & JSON API</p>
+  </footer>
+
+  <script>
+    const form = document.getElementById('queryForm');
+    const output = document.getElementById('output');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const params = new URLSearchParams(new FormData(form)).toString();
+      const res = await fetch(`/.netlify/functions/players?${params}`);
+      const data = await res.json();
+      output.textContent = JSON.stringify(data, null, 2);
+    });
+  </script>
+</body>
+</html>
