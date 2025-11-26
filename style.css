@@ -1,0 +1,92 @@
+/* style.css */
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(120deg, #013220, #145A32);
+  color: #fff;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background: #0B3D91;
+  text-align: center;
+  padding: 2rem;
+  border-bottom: 5px solid #FFD700;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  color: #FFD700;
+}
+
+header p {
+  margin-top: 0.5rem;
+  font-size: 1.2rem;
+}
+
+main {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 1rem;
+}
+
+.query-box {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 0 10px #000;
+}
+
+.query-box label {
+  display: block;
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+.query-box input {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.3rem;
+  border: none;
+  border-radius: 5px;
+}
+
+.query-box button {
+  margin-top: 1.5rem;
+  padding: 0.7rem 1.5rem;
+  background: #FFD700;
+  color: #0B3D91;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.query-box button:hover {
+  background: #FFC107;
+}
+
+.results {
+  margin-top: 2rem;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1rem;
+  border-radius: 10px;
+}
+
+.results pre {
+  background: #111;
+  padding: 1rem;
+  border-radius: 5px;
+  overflow-x: auto;
+  color: #0F0;
+  font-family: monospace;
+}
+
+footer {
+  text-align: center;
+  padding: 1rem;
+  background: #0B3D91;
+  border-top: 5px solid #FFD700;
+}
