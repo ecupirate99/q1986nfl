@@ -7,7 +7,7 @@
 </head>
 <body>
   <header>
-    <h1>🏈 NFL 1986 Player Stats</h1>
+    <h1>🏈 NFL 1986 Offensive Player Stats</h1>
     <p>Query the API for offensive player stats</p>
   </header>
 
@@ -18,19 +18,16 @@
         <input type="text" id="name" name="name" placeholder="e.g. Marino">
 
         <label for="team">Team:</label>
-        <input type="text" id="team" name="team" placeholder="e.g. MIA">
+        <input type="text" id="team" name="team" placeholder="e.g. Dolphins">
 
         <label for="pos">Position:</label>
         <input type="text" id="pos" name="pos" placeholder="QB, RB, WR, TE">
 
-        <label for="minPassYds">Min Passing Yards:</label>
-        <input type="number" id="minPassYds" name="minPassYds">
+        <label for="minYds">Min Yards:</label>
+        <input type="number" id="minYds" name="minYds">
 
-        <label for="minRushYds">Min Rushing Yards:</label>
-        <input type="number" id="minRushYds" name="minRushYds">
-
-        <label for="minRecYds">Min Receiving Yards:</label>
-        <input type="number" id="minRecYds" name="minRecYds">
+        <label for="minTD">Min Touchdowns:</label>
+        <input type="number" id="minTD" name="minTD">
 
         <button type="submit">Search Stats</button>
       </form>
@@ -45,13 +42,12 @@
             <th>Team</th>
             <th>Pos</th>
             <th>G</th>
-            <th>PassYds</th>
-            <th>PassTD</th>
-            <th>RushYds</th>
-            <th>RushTD</th>
-            <th>Rec</th>
-            <th>RecYds</th>
-            <th>RecTD</th>
+            <th>Cmp</th>
+            <th>Att</th>
+            <th>Yds</th>
+            <th>TD</th>
+            <th>Int</th>
+            <th>Rate</th>
           </tr>
         </thead>
         <tbody>
@@ -79,25 +75,24 @@
       tableBody.innerHTML = "";
 
       if (data.length === 0) {
-        tableBody.innerHTML = "<tr><td colspan='11'>No results found</td></tr>";
+        tableBody.innerHTML = "<tr><td colspan='10'>No results found</td></tr>";
         return;
       }
 
       // Populate table
-      data.forEach(player => {
+      data.forEach(p => {
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${player.Player || ""}</td>
-          <td>${player.Team || ""}</td>
-          <td>${player.Pos || ""}</td>
-          <td>${player.G || ""}</td>
-          <td>${player.PassYds || ""}</td>
-          <td>${player.PassTD || ""}</td>
-          <td>${player.RushYds || ""}</td>
-          <td>${player.RushTD || ""}</td>
-          <td>${player.Rec || ""}</td>
-          <td>${player.RecYds || ""}</td>
-          <td>${player.RecTD || ""}</td>
+          <td>${p.Player || ""}</td>
+          <td>${p.Team || ""}</td>
+          <td>${p.Pos || ""}</td>
+          <td>${p.G || ""}</td>
+          <td>${p.Cmp || ""}</td>
+          <td>${p.Att || ""}</td>
+          <td>${p.Yds || ""}</td>
+          <td>${p.TD || ""}</td>
+          <td>${p.Int || ""}</td>
+          <td>${p.Rate || ""}</td>
         `;
         tableBody.appendChild(row);
       });
