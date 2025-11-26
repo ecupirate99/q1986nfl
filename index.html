@@ -3,12 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <title>NFL 1986 Stats</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #003366; }
+    form { margin-bottom: 20px; }
+    label { margin-right: 10px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+  </style>
 </head>
 <body>
   <h1>🏈 NFL 1986 Offensive Player Stats</h1>
 
+  <!-- Free-form question box -->
   <form id="queryForm">
+    <label>Ask a question:</label>
+    <input type="text" id="question" name="question" placeholder="e.g. Top 5 by yards">
+    <br><br>
+
+    <!-- Optional filters -->
     <label>Player Name: <input type="text" name="name"></label>
     <label>Team: <input type="text" name="team"></label>
     <label>Position: <input type="text" name="pos"></label>
@@ -36,39 +50,97 @@
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // Load JSON directly from public folder
+        // Load JSON directly
         const res = await fetch("players.json");
         const players = await res.json();
 
         const params = Object.fromEntries(new FormData(form).entries());
         let results = players;
 
-        if (params.name) {
-          results = results.filter(p =>
-            p.Player && p.Player.toLowerCase().includes(params.name.toLowerCase())
-          );
-        }
-        if (params.team) {
-          results = results.filter(p =>
-            p.Team && p.Team.toLowerCase().includes(params.team.toLowerCase())
-          );
-        }
-        if (params.pos) {
-          results = results.filter(p =>
-            p.Pos && p.Pos.toLowerCase() === params.pos.toLowerCase()
-          );
-        }
-        if (params.minYds) {
-          results = results.filter(p =>
-            parseFloat(p.Yds || 0) >= parseFloat(params.minYds)
-          );
-        }
-        if (params.minTD) {
-          results = results.filter(p =>
-            parseInt(p.TD || 0) >= parseInt(params.minTD)
-          );
+        // --- Natural language question parsing ---
+        if (params.question) {
+          const q = params.question.toLowerCase();
+
+          // Most yards
+          if (q.includes("most yards")) {
+            results = results.sort((a, b) => parseFloat(b.Yds || 0) - parseFloat(a.Yds || 0)).slice(0, 1);
+          }
+
+          // Most touchdowns
+          if (q.includes("most td") || q.includes("most touchdowns")) {
+            results = results.sort((a, b) => parseInt(b.TD || 0) - parseInt(a.TD || 0)).slice(0, 1);
+          }
+
+          // More than X yards
+          const yardsMatch = q.match(/(\d+)\s*(yards|yds)/);
+          if (yardsMatch) {
+            const minYds = parseInt(yardsMatch[1]);
+            results = results.filter(p => parseFloat(p.Yds || 0) >= minYds);
+          }
+
+          // At least X touchdowns
+          const tdMatch = q.match(/(\d+)\s*(td|touchdowns?)/);
+          if (tdMatch) {
+            const minTD = parseInt(tdMatch[1]);
+            results = results.filter(p => parseInt(p.TD || 0) >= minTD);
+          }
+
+          // Team queries
+          const teamMatch = q.match(/team\s+(\w+)/);
+          if (teamMatch) {
+            const team = teamMatch[1];
+            results = results.filter(p => p.Team && p.Team.toLowerCase().includes(team.toLowerCase()));
+          }
+          if (q.includes("dolphins")) {
+            results = results.filter(p => p.Team && p.Team.toLowerCase().includes("dolphins"));
+          }
+
+          // Position queries
+          const posMatch = q.match(/(qb|rb|wr|te)/);
+          if (posMatch) {
+            const pos = posMatch[1];
+            results = results.filter(p => p.Pos && p.Pos.toLowerCase() === pos.toLowerCase());
+          }
+
+          // --- Sorting / Ranking ---
+          // Top N by yards
+          const topYdsMatch = q.match(/top\s*(\d+)\s*(by)?\s*yards/);
+          if (topYdsMatch) {
+            const n = parseInt(topYdsMatch[1]);
+            results = results.sort((a, b) => parseFloat(b.Yds || 0) - parseFloat(a.Yds || 0)).slice(0, n);
+          }
+
+          // Top N by touchdowns
+          const topTDMatch = q.match(/top\s*(\d+)\s*(by)?\s*(td|touchdowns?)/);
+          if (topTDMatch) {
+            const n = parseInt(topTDMatch[1]);
+            results = results.sort((a, b) => parseInt(b.TD || 0) - parseInt(a.TD || 0)).slice(0, n);
+          }
+
+          // Rank by passer rating
+          if (q.includes("rank") && q.includes("rating")) {
+            results = results.sort((a, b) => parseFloat(b.Rate || 0) - parseFloat(a.Rate || 0));
+          }
         }
 
+        // --- Apply filters normally ---
+        if (params.name) {
+          results = results.filter(p => p.Player && p.Player.toLowerCase().includes(params.name.toLowerCase()));
+        }
+        if (params.team) {
+          results = results.filter(p => p.Team && p.Team.toLowerCase().includes(params.team.toLowerCase()));
+        }
+        if (params.pos) {
+          results = results.filter(p => p.Pos && p.Pos.toLowerCase() === params.pos.toLowerCase());
+        }
+        if (params.minYds) {
+          results = results.filter(p => parseFloat(p.Yds || 0) >= parseFloat(params.minYds));
+        }
+        if (params.minTD) {
+          results = results.filter(p => parseInt(p.TD || 0) >= parseInt(params.minTD));
+        }
+
+        // --- Display results ---
         tableBody.innerHTML = "";
         if (results.length === 0) {
           tableBody.innerHTML = "<tr><td colspan='10'>No results found</td></tr>";
