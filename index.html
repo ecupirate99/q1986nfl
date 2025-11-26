@@ -12,7 +12,6 @@
     table { border-collapse: collapse; width: 100%; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background-color: #f2f2f2; }
-    input.header-filter { width: 90%; font-size: 0.9em; }
   </style>
 </head>
 <body>
@@ -37,16 +36,9 @@
   <table id="resultsTable">
     <thead>
       <tr>
-        <th>Player<br><input class="header-filter" data-key="Player" placeholder="Filter"></th>
-        <th>Team<br><input class="header-filter" data-key="Team" placeholder="Filter"></th>
-        <th>Pos<br><input class="header-filter" data-key="Pos" placeholder="Filter"></th>
-        <th>G<br><input class="header-filter" data-key="G" placeholder="Filter"></th>
-        <th>Cmp<br><input class="header-filter" data-key="Cmp" placeholder="Filter"></th>
-        <th>Att<br><input class="header-filter" data-key="Att" placeholder="Filter"></th>
-        <th>Yds<br><input class="header-filter" data-key="Yds" placeholder="Filter"></th>
-        <th>TD<br><input class="header-filter" data-key="TD" placeholder="Filter"></th>
-        <th>Int<br><input class="header-filter" data-key="Int" placeholder="Filter"></th>
-        <th>Rate<br><input class="header-filter" data-key="Rate" placeholder="Filter"></th>
+        <th>Player</th><th>Team</th><th>Pos</th><th>G</th>
+        <th>Cmp</th><th>Att</th><th>Yds</th><th>TD</th>
+        <th>Int</th><th>Rate</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -57,21 +49,21 @@
       const form = document.getElementById('queryForm');
       const tableBody = document.querySelector('#resultsTable tbody');
       const clearBtn = document.getElementById('clearBtn');
-      const headerFilters = document.querySelectorAll('.header-filter');
-      let lastResults = []; // store last search results
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
+        // Load JSON directly
         const res = await fetch("players.json");
         const players = await res.json();
 
         const params = Object.fromEntries(new FormData(form).entries());
         let results = players;
 
-        // --- Natural language parsing (same as before) ---
+        // --- Natural language question parsing ---
         if (params.question) {
           const q = params.question.toLowerCase();
+
           if (q.includes("most yards")) {
             results = results.sort((a, b) => parseFloat(b.Yds || 0) - parseFloat(a.Yds || 0)).slice(0, 1);
           }
@@ -117,46 +109,29 @@
         }
 
         // --- Apply filters normally ---
-        if (params.name) results = results.filter(p => p.Player && p.Player.toLowerCase().includes(params.name.toLowerCase()));
-        if (params.team) results = results.filter(p => p.Team && p.Team.toLowerCase().includes(params.team.toLowerCase()));
-        if (params.pos) results = results.filter(p => p.Pos && p.Pos.toLowerCase() === params.pos.toLowerCase());
-        if (params.minYds) results = results.filter(p => parseFloat(p.Yds || 0) >= parseFloat(params.minYds));
-        if (params.minTD) results = results.filter(p => parseInt(p.TD || 0) >= parseInt(params.minTD));
+        if (params.name) {
+          results = results.filter(p => p.Player && p.Player.toLowerCase().includes(params.name.toLowerCase()));
+        }
+        if (params.team) {
+          results = results.filter(p => p.Team && p.Team.toLowerCase().includes(params.team.toLowerCase()));
+        }
+        if (params.pos) {
+          results = results.filter(p => p.Pos && p.Pos.toLowerCase() === params.pos.toLowerCase());
+        }
+        if (params.minYds) {
+          results = results.filter(p => parseFloat(p.Yds || 0) >= parseFloat(params.minYds));
+        }
+        if (params.minTD) {
+          results = results.filter(p => parseInt(p.TD || 0) >= parseInt(params.minTD));
+        }
 
-        lastResults = results; // save for header filters
-        renderResults(results);
-      });
-
-      // Clear button
-      clearBtn.addEventListener('click', () => {
-        form.reset();
-        headerFilters.forEach(f => f.value = "");
+        // --- Display results ---
         tableBody.innerHTML = "";
-        lastResults = [];
-      });
-
-      // Header filters
-      headerFilters.forEach(input => {
-        input.addEventListener('input', () => {
-          if (!lastResults.length) return;
-          let filtered = lastResults.filter(p => {
-            return Array.from(headerFilters).every(f => {
-              const key = f.dataset.key;
-              const val = f.value.trim().toLowerCase();
-              if (!val) return true;
-              return p[key] && p[key].toString().toLowerCase().includes(val);
-            });
-          });
-          renderResults(filtered);
-        });
-      });
-
-      function renderResults(results) {
-        tableBody.innerHTML = "";
-        if (!results.length) {
+        if (results.length === 0) {
           tableBody.innerHTML = "<tr><td colspan='10'>No results found</td></tr>";
           return;
         }
+
         results.forEach(p => {
           const row = document.createElement('tr');
           row.innerHTML = `
@@ -171,4 +146,16 @@
             <td>${p.Int || ""}</td>
             <td>${p.Rate || ""}</td>
           `;
-          table
+          tableBody.appendChild(row);
+        });
+      });
+
+      // --- Clear button functionality ---
+      clearBtn.addEventListener('click', () => {
+        form.reset(); // clears all inputs
+        tableBody.innerHTML = ""; // clears results
+      });
+    });
+  </script>
+</body>
+</html>
