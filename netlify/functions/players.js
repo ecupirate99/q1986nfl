@@ -4,7 +4,7 @@ const path = require("path");
 
 exports.handler = async (event) => {
   try {
-    // Load JSON file from the same folder
+    // Load JSON file from the same folder as this function
     const filePath = path.join(__dirname, "players.json");
     const raw = fs.readFileSync(filePath, "utf8");
     const players = JSON.parse(raw);
