@@ -4,12 +4,11 @@ const fs = require("fs");
 const path = require("path");
 
 exports.handler = async (event, context) => {
-  // Load JSON data from /data folder
   const players = JSON.parse(
     fs.readFileSync(path.join(__dirname, "../../data/players.json"), "utf8")
   );
 
-  const { name, team, pos, minPassYds, minRushYds, minRecYds } = event.queryStringParameters || {};
+  const { name, team, pos, minYds, minTD } = event.queryStringParameters || {};
   let results = players;
 
   // Filter by player name
@@ -33,24 +32,17 @@ exports.handler = async (event, context) => {
     );
   }
 
-  // Passing yards threshold (use "Yds" column for QBs)
-  if (minPassYds) {
+  // Filter by yards (use "Yds" column)
+  if (minYds) {
     results = results.filter(
-      p => parseInt(p.Yds || 0) >= parseInt(minPassYds)
+      p => parseFloat(p.Yds || 0) >= parseFloat(minYds)
     );
   }
 
-  // Rushing yards threshold (not in your sample, but if you add RushYds later)
-  if (minRushYds) {
+  // Filter by touchdowns (use "TD" column)
+  if (minTD) {
     results = results.filter(
-      p => parseInt(p.RushYds || 0) >= parseInt(minRushYds)
-    );
-  }
-
-  // Receiving yards threshold (use "Yds" column for WRs/RBs if dataset is unified)
-  if (minRecYds) {
-    results = results.filter(
-      p => parseInt(p.Yds || 0) >= parseInt(minRecYds)
+      p => parseInt(p.TD || 0) >= parseInt(minTD)
     );
   }
 
