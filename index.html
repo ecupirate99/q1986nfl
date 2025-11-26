@@ -8,9 +8,11 @@
     h1 { color: #003366; }
     form { margin-bottom: 20px; }
     label { margin-right: 10px; }
+    button { margin-left: 10px; }
     table { border-collapse: collapse; width: 100%; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background-color: #f2f2f2; }
+    input.header-filter { width: 90%; font-size: 0.9em; }
   </style>
 </head>
 <body>
@@ -29,14 +31,22 @@
     <label>Min Yards: <input type="number" name="minYds"></label>
     <label>Min TD: <input type="number" name="minTD"></label>
     <button type="submit">Search</button>
+    <button type="button" id="clearBtn">Clear</button>
   </form>
 
   <table id="resultsTable">
     <thead>
       <tr>
-        <th>Player</th><th>Team</th><th>Pos</th><th>G</th>
-        <th>Cmp</th><th>Att</th><th>Yds</th><th>TD</th>
-        <th>Int</th><th>Rate</th>
+        <th>Player<br><input class="header-filter" data-key="Player" placeholder="Filter"></th>
+        <th>Team<br><input class="header-filter" data-key="Team" placeholder="Filter"></th>
+        <th>Pos<br><input class="header-filter" data-key="Pos" placeholder="Filter"></th>
+        <th>G<br><input class="header-filter" data-key="G" placeholder="Filter"></th>
+        <th>Cmp<br><input class="header-filter" data-key="Cmp" placeholder="Filter"></th>
+        <th>Att<br><input class="header-filter" data-key="Att" placeholder="Filter"></th>
+        <th>Yds<br><input class="header-filter" data-key="Yds" placeholder="Filter"></th>
+        <th>TD<br><input class="header-filter" data-key="TD" placeholder="Filter"></th>
+        <th>Int<br><input class="header-filter" data-key="Int" placeholder="Filter"></th>
+        <th>Rate<br><input class="header-filter" data-key="Rate" placeholder="Filter"></th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -46,46 +56,38 @@
     document.addEventListener("DOMContentLoaded", () => {
       const form = document.getElementById('queryForm');
       const tableBody = document.querySelector('#resultsTable tbody');
+      const clearBtn = document.getElementById('clearBtn');
+      const headerFilters = document.querySelectorAll('.header-filter');
+      let lastResults = []; // store last search results
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // Load JSON directly
         const res = await fetch("players.json");
         const players = await res.json();
 
         const params = Object.fromEntries(new FormData(form).entries());
         let results = players;
 
-        // --- Natural language question parsing ---
+        // --- Natural language parsing (same as before) ---
         if (params.question) {
           const q = params.question.toLowerCase();
-
-          // Most yards
           if (q.includes("most yards")) {
             results = results.sort((a, b) => parseFloat(b.Yds || 0) - parseFloat(a.Yds || 0)).slice(0, 1);
           }
-
-          // Most touchdowns
           if (q.includes("most td") || q.includes("most touchdowns")) {
             results = results.sort((a, b) => parseInt(b.TD || 0) - parseInt(a.TD || 0)).slice(0, 1);
           }
-
-          // More than X yards
           const yardsMatch = q.match(/(\d+)\s*(yards|yds)/);
           if (yardsMatch) {
             const minYds = parseInt(yardsMatch[1]);
             results = results.filter(p => parseFloat(p.Yds || 0) >= minYds);
           }
-
-          // At least X touchdowns
           const tdMatch = q.match(/(\d+)\s*(td|touchdowns?)/);
           if (tdMatch) {
             const minTD = parseInt(tdMatch[1]);
             results = results.filter(p => parseInt(p.TD || 0) >= minTD);
           }
-
-          // Team queries
           const teamMatch = q.match(/team\s+(\w+)/);
           if (teamMatch) {
             const team = teamMatch[1];
@@ -94,59 +96,67 @@
           if (q.includes("dolphins")) {
             results = results.filter(p => p.Team && p.Team.toLowerCase().includes("dolphins"));
           }
-
-          // Position queries
           const posMatch = q.match(/(qb|rb|wr|te)/);
           if (posMatch) {
             const pos = posMatch[1];
             results = results.filter(p => p.Pos && p.Pos.toLowerCase() === pos.toLowerCase());
           }
-
-          // --- Sorting / Ranking ---
-          // Top N by yards
           const topYdsMatch = q.match(/top\s*(\d+)\s*(by)?\s*yards/);
           if (topYdsMatch) {
             const n = parseInt(topYdsMatch[1]);
             results = results.sort((a, b) => parseFloat(b.Yds || 0) - parseFloat(a.Yds || 0)).slice(0, n);
           }
-
-          // Top N by touchdowns
           const topTDMatch = q.match(/top\s*(\d+)\s*(by)?\s*(td|touchdowns?)/);
           if (topTDMatch) {
             const n = parseInt(topTDMatch[1]);
             results = results.sort((a, b) => parseInt(b.TD || 0) - parseInt(a.TD || 0)).slice(0, n);
           }
-
-          // Rank by passer rating
           if (q.includes("rank") && q.includes("rating")) {
             results = results.sort((a, b) => parseFloat(b.Rate || 0) - parseFloat(a.Rate || 0));
           }
         }
 
         // --- Apply filters normally ---
-        if (params.name) {
-          results = results.filter(p => p.Player && p.Player.toLowerCase().includes(params.name.toLowerCase()));
-        }
-        if (params.team) {
-          results = results.filter(p => p.Team && p.Team.toLowerCase().includes(params.team.toLowerCase()));
-        }
-        if (params.pos) {
-          results = results.filter(p => p.Pos && p.Pos.toLowerCase() === params.pos.toLowerCase());
-        }
-        if (params.minYds) {
-          results = results.filter(p => parseFloat(p.Yds || 0) >= parseFloat(params.minYds));
-        }
-        if (params.minTD) {
-          results = results.filter(p => parseInt(p.TD || 0) >= parseInt(params.minTD));
-        }
+        if (params.name) results = results.filter(p => p.Player && p.Player.toLowerCase().includes(params.name.toLowerCase()));
+        if (params.team) results = results.filter(p => p.Team && p.Team.toLowerCase().includes(params.team.toLowerCase()));
+        if (params.pos) results = results.filter(p => p.Pos && p.Pos.toLowerCase() === params.pos.toLowerCase());
+        if (params.minYds) results = results.filter(p => parseFloat(p.Yds || 0) >= parseFloat(params.minYds));
+        if (params.minTD) results = results.filter(p => parseInt(p.TD || 0) >= parseInt(params.minTD));
 
-        // --- Display results ---
+        lastResults = results; // save for header filters
+        renderResults(results);
+      });
+
+      // Clear button
+      clearBtn.addEventListener('click', () => {
+        form.reset();
+        headerFilters.forEach(f => f.value = "");
         tableBody.innerHTML = "";
-        if (results.length === 0) {
+        lastResults = [];
+      });
+
+      // Header filters
+      headerFilters.forEach(input => {
+        input.addEventListener('input', () => {
+          if (!lastResults.length) return;
+          let filtered = lastResults.filter(p => {
+            return Array.from(headerFilters).every(f => {
+              const key = f.dataset.key;
+              const val = f.value.trim().toLowerCase();
+              if (!val) return true;
+              return p[key] && p[key].toString().toLowerCase().includes(val);
+            });
+          });
+          renderResults(filtered);
+        });
+      });
+
+      function renderResults(results) {
+        tableBody.innerHTML = "";
+        if (!results.length) {
           tableBody.innerHTML = "<tr><td colspan='10'>No results found</td></tr>";
           return;
         }
-
         results.forEach(p => {
           const row = document.createElement('tr');
           row.innerHTML = `
@@ -161,10 +171,4 @@
             <td>${p.Int || ""}</td>
             <td>${p.Rate || ""}</td>
           `;
-          tableBody.appendChild(row);
-        });
-      });
-    });
-  </script>
-</body>
-</html>
+          table
