@@ -27,7 +27,7 @@ header p {
 }
 
 main {
-  max-width: 800px;
+  max-width: 1000px;
   margin: 2rem auto;
   padding: 1rem;
 }
@@ -75,13 +75,33 @@ main {
   border-radius: 10px;
 }
 
-.results pre {
-  background: #111;
-  padding: 1rem;
-  border-radius: 5px;
-  overflow-x: auto;
-  color: #0F0;
-  font-family: monospace;
+.results table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  color: #000;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.results th, .results td {
+  padding: 0.8rem;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+}
+
+.results th {
+  background: #0B3D91;
+  color: #FFD700;
+  font-weight: bold;
+}
+
+.results tr:nth-child(even) {
+  background: #f2f2f2;
+}
+
+.results tr:hover {
+  background: #d1e7dd;
 }
 
 footer {
@@ -89,4 +109,5 @@ footer {
   padding: 1rem;
   background: #0B3D91;
   border-top: 5px solid #FFD700;
+  color: #fff;
 }
