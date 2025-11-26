@@ -45,6 +45,7 @@
         <label>Team:
           <select name="team">
             <option value="">-- Select Team --</option>
+            <option value="49ers">49ers</option>
             <option value="Bears">Bears</option>
             <option value="Bengals">Bengals</option>
             <option value="Bills">Bills</option>
@@ -72,11 +73,19 @@
             <option value="Seahawks">Seahawks</option>
             <option value="Steelers">Steelers</option>
             <option value="Vikings">Vikings</option>
-            <option value="49ers">49ers</option>
           </select>
         </label>
 
-        <label>Position:<input type="text" name="pos" placeholder="QB, RB, WR, TE"></label>
+        <label>Position:
+          <select name="pos">
+            <option value="">-- Select Position --</option>
+            <option value="QB">QB</option>
+            <option value="RB">RB</option>
+            <option value="TE">TE</option>
+            <option value="WR">WR</option>
+          </select>
+        </label>
+
         <label>Min Yards:<input type="number" name="minYds"></label>
         <label>Min TD:<input type="number" name="minTD"></label>
         <button type="submit">Search</button>
@@ -123,11 +132,24 @@
         let results = players;
 
         // Apply filters
-        if (params.name) results = results.filter(p => p.Player && p.Player.toLowerCase().includes(params.name.toLowerCase()));
-        if (params.team) results = results.filter(p => p.Team && p.Team.toLowerCase() === params.team.toLowerCase());
-        if (params.pos) results = results.filter(p => p.Pos && p.Pos.toLowerCase() === params.pos.toLowerCase());
-        if (params.minYds) results = results.filter(p => parseFloat(p.Yds || 0) >= parseFloat(params.minYds));
-        if (params.minTD) results = results.filter(p => parseInt(p.TD || 0) >= parseInt(params.minTD));
+        if (params.name) {
+          results = results.filter(p => p.Player && p.Player.toLowerCase().includes(params.name.toLowerCase()));
+        }
+        if (params.team) {
+          results = results.filter(p => p.Team && p.Team.toLowerCase().includes(params.team.toLowerCase()));
+        }
+        if (params.pos) {
+          results = results.filter(p => p.Pos && p.Pos.toLowerCase() === params.pos.toLowerCase());
+        }
+        if (params.minYds) {
+          results = results.filter(p => parseFloat(p.Yds || 0) >= parseFloat(params.minYds));
+        }
+        if (params.minTD) {
+          results = results.filter(p => parseInt(p.TD || 0) >= parseInt(params.minTD));
+        }
+
+        // Default sort by Yds descending
+        results = results.sort((a, b) => parseFloat(b.Yds || 0) - parseFloat(a.Yds || 0));
 
         lastResults = results;
         renderResults(results);
@@ -159,24 +181,4 @@
             if (isNumeric) {
               return direction === "asc" ? valA - valB : valB - valA;
             } else {
-              return direction === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
-            }
-          });
-
-          renderResults(lastResults);
-        });
-      });
-
-      function renderResults(results) {
-        tableBody.innerHTML = "";
-        if (!results.length) {
-          tableBody.innerHTML = "<tr><td colspan='10'>No results found</td></tr>";
-          return;
-        }
-        results.forEach(p => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${p.Player || ""}</td>
-            <td>${p.Team || ""}</td>
-            <td>${p.Pos || ""}</td>
-            <td>${p.G || ""}</td>
+              return direction === "asc" ? val
